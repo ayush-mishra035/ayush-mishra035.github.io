@@ -41,7 +41,9 @@ body {
     font-size: 1.8rem;
     font-weight: bold;
     background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    /* Use background-clip for gradient text effect; -webkit- prefix required for Chrome/Safari. Not supported in Firefox/Edge. */
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
