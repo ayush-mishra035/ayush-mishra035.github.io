@@ -838,128 +838,161 @@ footer {
   box-shadow: 0 -10px 30px rgba(0,0,0,0.2);
 }
 
-/* Animations */
-@keyframes weatherPulse {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
+/* Live Clock (top-right, glassmorphism) */
+.clock-widget {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  min-width: 190px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.25);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+  color: #fff;
+  text-align: right;
+  font-family: 'Orbitron', monospace;
+  line-height: 1.15;
+  will-change: transform, opacity;
+}
+.clock-widget .clk-time {
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.clock-widget .clk-date {
+  font-size: 11px;
+  opacity: 0.95;
 }
 
-.weather-widget.updating {
-  animation: weatherPulse 2s ease-in-out infinite;
+/* Tick animation on update */
+.clock-widget.tick .clk-time {
+  animation: none !important;
+}
+.clock-widget.tick .clk-date {
+  animation: none !important;
 }
 
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
+/* Dark theme tweak */
+body.dark .clock-widget {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.18);
+}
+
+/* Responsive: center clock on small screens */
+@media (max-width: 768px) {
+  .clock-widget {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: 12px auto 0 auto;
+    text-align: center;
   }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
 }
 
-.live-item.new {
-  animation: slideInRight 0.5s ease-out;
+/* Dark theme base */
+body.dark {
+  background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+  color: #ecf0f1;
+}
+body.dark header {
+  background: linear-gradient(135deg, #1c2740 0%, #1f2d55 100%);
+}
+body.dark .chart-card,
+body.dark .form-section,
+body.dark .realtime-section,
+body.dark .location-section {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
+}
+body.dark .stat-card {
+  background: linear-gradient(135deg, #243b55 0%, #141e30 100%);
+}
+body.dark .filter {
+  background: rgba(255,255,255,0.12);
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.chart-card, .stat-card, .form-section {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-/* Loading states */
-.loading {
+/* Offline banner */
+.offline {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #ffc107;
+  color: #1f2d3d;
   text-align: center;
-  padding: 40px;
-  color: white;
-  font-size: 1.2rem;
+  padding: 8px 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
-.loading::after {
-  content: '';
-  display: inline-block;
-  width: 30px;
-  height: 30px;
-  border: 3px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s ease-in-out infinite;
-  margin-left: 10px;
-}
+/* Hidden utility */
+.hidden { display: none !important; }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* Toast notifications */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+  pointer-events: none;
+  z-index: 1200;
 }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+.toast.success { background: linear-gradient(135deg, #28a745, #20c997); }
+.toast.info    { background: linear-gradient(135deg, #3498db, #2e86c1); }
+.toast.warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
+.toast.error   { background: linear-gradient(135deg, #e74c3c, #c0392b); }
 
-.loading-skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-  border-radius: 4px;
-  height: 20px;
-  margin: 5px 0;
+/* Busy overlay */
+.busy {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: grid;
+  place-items: center;
+  z-index: 1300;
 }
-
-@keyframes loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* Error and success states */
-.error {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-  color: white;
-  padding: 15px 20px;
+.busy .busy-inner {
+  background: rgba(255,255,255,0.95);
+  color: #2c3e50;
+  padding: 14px 18px;
   border-radius: 12px;
-  margin: 15px 0;
-  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
-  border: none;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+body.dark .busy .busy-inner {
+  background: rgba(20, 24, 33, 0.98);
+  color: #ecf0f1;
 }
 
-.success {
-  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
-  color: white;
-  padding: 15px 20px;
-  border-radius: 12px;
-  margin: 15px 0;
-  box-shadow: 0 8px 25px rgba(78, 205, 196, 0.3);
-  border: none;
+/* Reduce motion for low-power devices */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }
 
-/* Input file styling */
-input[type="file"] {
-  display: none;
+/* Make theme toggle look nice on dark */
+body.dark .btn-weather {
+  border: 1px solid rgba(255,255,255,0.15);
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.1);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+/* Slightly lighter shadows on mobile to reduce lag */
+@media (max-width: 576px) {
+  .chart-card, .stat-card, .form-section, .realtime-section {
+    box-shadow: 0 10px 24px rgba(0,0,0,0.15);
+  }
 }
 
 /* Responsive Design */
@@ -1107,4 +1140,47 @@ input[type="file"] {
   .form-section {
     padding: 15px;
   }
+}
+
+/* API Key Row */
+.api-ctl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.api-ctl input {
+  padding: 10px 12px;
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  background: #fff;
+  color: #2c3e50;
+  min-width: 260px;
+}
+.api-ctl .note {
+  color: rgba(255,255,255,0.9);
+  font-size: 12px;
+}
+/* Dark theme tweak */
+body.dark .api-ctl input {
+  background: rgba(255,255,255,0.12);
+  color: #ecf0f1;
+  border-color: rgba(255,255,255,0.25);
+}
+
+/* Remove/hide weather UI if any leftover markup remains */
+.weather-widget,
+.location-section,
+.api-ctl,
+.weather-summary,
+.weather-details,
+.weather-details-grid {
+  display: none !important;
+}
+
+/* Remove weather-specific live item accents */
+.live-item.weather-success,
+.live-item.weather-warning,
+.live-item.weather-danger {
+  border-left-color: transparent !important;
 }

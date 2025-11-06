@@ -10,35 +10,23 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
+  <!-- Show offline status -->
+  <div id="offlineBanner" class="offline hidden">You are offline. Some features may be limited.</div>
+
   <header>
     <h1>🏆 SportStats Dashboard</h1>
-    <p>Advanced Sports Analytics & Weather Intelligence Platform</p>
+    <p>Advanced Sports Analytics Platform</p>
     
-    <!-- Weather Widget -->
-    <div class="weather-widget" id="weatherWidget">
-      <div class="weather-loading">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span>Getting weather data...</span>
-      </div>
+    <div style="position:absolute; top:20px; left:20px; display:flex; gap:10px;">
+      <button id="themeToggle" class="btn btn-weather" aria-label="Toggle theme" title="Toggle theme">
+        <i class="fas fa-moon"></i>
+      </button>
+    </div>
+    <!-- Live Clock (top-right) -->
+    <div id="liveClock" class="clock-widget" aria-live="polite" title="Local time">
+      <!-- time filled by script -->
     </div>
   </header>
-
-  <!-- Location & Weather Section -->
-  <section class="location-section">
-    <div class="location-controls">
-      <div class="location-input">
-        <i class="fas fa-map-marker-alt"></i>
-        <input type="text" id="locationInput" placeholder="Enter city name or coordinates">
-        <button id="getLocationBtn" class="btn btn-weather">
-          <i class="fas fa-search"></i>
-        </button>
-        <button id="currentLocationBtn" class="btn btn-weather">
-          <i class="fas fa-location-arrow"></i>
-        </button>
-      </div>
-      <div class="weather-summary" id="weatherSummary"></div>
-    </div>
-  </section>
 
   <!-- Team Management Section -->
   <section class="form-section">
@@ -57,7 +45,10 @@
         <i class="fas fa-file-pdf"></i> Generate Report
       </button>
     </div>
-    
+
+    <!-- Hidden import input (required by script.js) -->
+    <input type="file" id="importFile" accept=".json" style="display:none;">
+
     <div id="addTeamForm" style="display: none; margin-top: 20px;">
       <h3>Add New Team</h3>
       <form id="teamForm">
@@ -135,14 +126,13 @@
 
   <!-- Enhanced Analytics Section -->
   <section id="analytics">
-    <h2>📊 Advanced Team Analytics & Weather Impact</h2>
+    <h2>📊 Advanced Team Analytics</h2>
     
-    <!-- Key Statistics with Weather Info -->
+    <!-- Key Statistics -->
     <div class="stats-grid">
-      <div class="stat-card weather-aware">
+      <div class="stat-card">
         <h4>Total Teams</h4>
         <p class="stat-value" id="totalTeams">0</p>
-        <div class="weather-impact" id="teamsWeatherImpact"></div>
       </div>
       <div class="stat-card">
         <h4>Total Matches</h4>
@@ -155,11 +145,6 @@
       <div class="stat-card">
         <h4>Average Win Rate</h4>
         <p class="stat-value" id="avgWinRate">0%</p>
-      </div>
-      <div class="stat-card weather-aware">
-        <h4>Weather Conditions</h4>
-        <p class="stat-value" id="weatherCondition">--</p>
-        <div class="weather-details" id="weatherDetails"></div>
       </div>
     </div>
     
@@ -191,10 +176,6 @@
         <canvas id="comparisonChart"></canvas>
       </div>
       <div class="chart-card">
-        <h3>🌤️ Weather Performance Analysis</h3>
-        <canvas id="weatherPerformanceChart"></canvas>
-      </div>
-      <div class="chart-card">
         <h3>📍 Geographic Distribution</h3>
         <div id="mapContainer" style="height: 350px; border-radius: 10px;"></div>
       </div>
@@ -206,18 +187,11 @@
   <!-- Real-time Updates Section -->
   <section class="realtime-section">
     <h2>⚡ Live Updates</h2>
+
     <div class="realtime-grid">
       <div class="update-card">
         <h4>Live Scores</h4>
         <div id="liveScores" class="live-content"></div>
-      </div>
-      <div class="update-card">
-        <h4>Weather Alerts</h4>
-        <div id="weatherAlerts" class="live-content"></div>
-      </div>
-      <div class="update-card">
-        <h4>Match Recommendations</h4>
-        <div id="matchRecommendations" class="live-content"></div>
       </div>
     </div>
   </section>
@@ -225,6 +199,15 @@
   <footer>
     <p>Developed by Ayush kumar And Deepak kumar| sports Hackathon 2025</p>
   </footer>
+
+  <!-- Toast notifications and busy overlay -->
+  <div id="toast" class="toast"></div>
+  <div id="appBusy" class="busy hidden">
+    <div class="busy-inner">
+      <i class="fas fa-circle-notch fa-spin"></i>
+      <span>Processing...</span>
+    </div>
+  </div>
 
   <!-- Enhanced Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

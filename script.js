@@ -56,16 +56,85 @@ let weatherData = {};
 let currentLocation = { lat: 40.7128, lng: -74.0060, city: "New York" };
 let map;
 let weatherUpdateInterval;
+// Add clock interval holder
+let clockInterval;
 
-// Weather API configuration
-const WEATHER_API_KEY = 'your_openweather_api_key'; // Replace with actual API key
-const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5';
+// Preferences and storage
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const STORAGE_KEYS = { teams: 'sportstats_teams', players: 'sportstats_players', theme: 'sportstats_theme', liveKey: 'sportstats_live_api_key', liveHost: 'sportstats_live_api_host', liveHubKey: 'sportstats_live_apihub_key' }; // removed apiKey
+let userMarker; // marker for current user location
+
+// Load persisted data (if available)
+function loadFromStorage() {
+  try {
+    const t = localStorage.getItem(STORAGE_KEYS.teams);
+    const p = localStorage.getItem(STORAGE_KEYS.players);
+    const theme = localStorage.getItem(STORAGE_KEYS.theme);
+    // NEW: load live API creds
+    const lk = localStorage.getItem(STORAGE_KEYS.liveKey);
+    const lh = localStorage.getItem(STORAGE_KEYS.liveHost);
+    const hk = localStorage.getItem(STORAGE_KEYS.liveHubKey);
+    if (t) teamsData = JSON.parse(t);
+    if (p) playersData = JSON.parse(p);
+    if (theme) applyTheme(theme);
+  } catch (_) {}
+}
+
+function persistData() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.teams, JSON.stringify(teamsData));
+    localStorage.setItem(STORAGE_KEYS.players, JSON.stringify(playersData));
+  } catch (_) {}
+}
+
+function applyTheme(mode) {
+  const body = document.body;
+  if (mode === 'dark') {
+    body.classList.add('dark');
+  } else {
+    body.classList.remove('dark');
+  }
+  localStorage.setItem(STORAGE_KEYS.theme, mode);
+}
+
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem(STORAGE_KEYS.theme, isDark ? 'dark' : 'light');
+  const icon = document.querySelector('#themeToggle i');
+  if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+// Toasts and busy overlay
+function showToast(msg, type = 'info', timeout = 2500) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), timeout);
+}
+
+function setBusy(show) {
+  const el = document.getElementById('appBusy');
+  if (!el) return;
+  el.classList.toggle('hidden', !show);
+}
+
+// Online/offline
+function setOfflineBanner(visible) {
+  const el = document.getElementById('offlineBanner');
+  if (el) el.classList.toggle('hidden', !visible);
+}
+
+// Override animations for reduced motion
+const chartAnimDuration = prefersReducedMotion ? 0 : 1200;
 
 // Enhanced initialization
 document.addEventListener('DOMContentLoaded', function() {
   console.log('DOM loaded, initializing enhanced platform...');
-  
   try {
+    // Load settings BEFORE building UI
+    loadFromStorage();
     // Initialize all components
     loadPlayerTable(playersData);
     loadAllCharts();
@@ -73,12 +142,25 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTeamStats();
     populateTeamOptions();
     updateTeamSelect();
-    
-    // Initialize weather and location services
-    initializeLocationServices();
-    initializeWeatherServices();
-    initializeMap();
+    // Initialize weather and location services (GPS first)
+    // initializeLocationServices();
+    // initializeWeatherServices();
+    // keep map if present
+    // initializeMap(); // leave as-is if you still render the map
     initializeRealTimeUpdates();
+    // Start live clock
+    startLiveClock();
+    
+    // After building UI:
+    window.addEventListener('online',  () => setOfflineBanner(false));
+    window.addEventListener('offline', () => setOfflineBanner(true));
+    setOfflineBanner(!navigator.onLine);
+
+    // Update theme toggle icon state
+    const savedTheme = localStorage.getItem(STORAGE_KEYS.theme) || 'light';
+    applyTheme(savedTheme);
+    const icon = document.querySelector('#themeToggle i');
+    if (icon) icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     
     console.log('Enhanced platform initialized successfully');
   } catch (error) {
@@ -129,39 +211,133 @@ function addEventListeners() {
       elements.team2Select.addEventListener('change', updateComparison);
     }
 
-    // Weather and location event listeners
-    const locationBtn = document.getElementById('currentLocationBtn');
-    const searchBtn = document.getElementById('getLocationBtn');
-    const locationInput = document.getElementById('locationInput');
+    // Import/Export UI bindings
     const importBtn = document.getElementById('importBtn');
     const importFile = document.getElementById('importFile');
     const generateReportBtn = document.getElementById('generateReportBtn');
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
 
-    if (locationBtn) {
-      locationBtn.addEventListener('click', getCurrentLocation);
-    }
-    if (searchBtn) {
-      searchBtn.addEventListener('click', searchLocation);
-    }
-    if (locationInput) {
-      locationInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') searchLocation();
-      });
-    }
-    if (importBtn) {
-      importBtn.addEventListener('click', () => importFile.click());
-    }
-    if (importFile) {
-      importFile.addEventListener('change', handleFileImport);
-    }
-    if (generateReportBtn) {
-      generateReportBtn.addEventListener('click', generatePDFReport);
-    }
+    // NEW: wire import and export-pdf buttons
+    if (importBtn && importFile) importBtn.addEventListener('click', () => importFile.click());
+    if (importFile) importFile.addEventListener('change', handleFileImport);
+    if (generateReportBtn) generateReportBtn.addEventListener('click', generatePDFReport);
 
-    console.log('Enhanced event listeners added successfully');
+    // removed: bind live API UI (saveLiveApiKeyBtn/liveApiKeyInput/liveApiHostInput/liveApiHubKeyInput)
+
+    // ...existing code...
   } catch (error) {
     console.error('Error adding enhanced event listeners:', error);
   }
+}
+
+// NEW: fetch live scores from AllThingsDev (APIhub) Cricbuzz API using provided snippet
+async function fetchApihubLive() {
+  const hubKey = localStorage.getItem(STORAGE_KEYS.liveHubKey);
+  if (!hubKey) return null;
+
+  try {
+    const myHeaders = new Headers();
+    myHeaders.append('x-apihub-key', hubKey);
+    myHeaders.append('x-apihub-host', 'Cricbuzz-Official-Cricket-API.allthingsdev.co');
+    myHeaders.append('x-apihub-endpoint', '95df5edd-bd8b-4881-a12b-1a40e519b693');
+
+    const requestOptions = { method: 'GET', headers: myHeaders, redirect: 'follow' };
+
+    const res = await fetch('https://Cricbuzz-Official-Cricket-API.proxy-production.allthingsdev.co/home', requestOptions);
+    if (!res.ok) throw new Error(`APIhub error: ${res.status}`);
+    // Try JSON first, fallback to text
+    let rawText = await res.text();
+    let data = null;
+    try { data = JSON.parse(rawText); } catch { /* keep text */ }
+
+    // Attempt to parse similar structure as Cricbuzz live feed
+    const items = [];
+    if (data && Array.isArray(data.typeMatches)) {
+      data.typeMatches.forEach(tm => {
+        (tm.seriesMatches || []).forEach(sm => {
+          const wrapper = sm.seriesAdWrapper;
+          if (!wrapper || !Array.isArray(wrapper.matches)) return;
+          wrapper.matches.forEach(m => {
+            const info = m.matchInfo || {};
+            const score = m.matchScore || {};
+            const t1 = info.team1?.teamSName || info.team1?.teamName || 'Team 1';
+            const t2 = info.team2?.teamSName || info.team2?.teamName || 'Team 2';
+            const t1s = score.team1Score?.inngs1 || score.team1Score?.inngs2 || null;
+            const t2s = score.team2Score?.inngs1 || score.team2Score?.inngs2 || null;
+            const t1Str = t1s ? `${t1} ${t1s.runs}/${t1s.wickets} (${t1s.overs} ov)` : t1;
+            const t2Str = t2s ? `${t2} ${t2s.runs}/${t2s.wickets} (${t2s.overs} ov)` : t2;
+            const status = info.status || info.matchDesc || '—';
+            items.push({ title: `${t1} vs ${t2}`, line1: t1Str, line2: t2Str, status });
+          });
+        });
+      });
+    }
+
+    // Fallback: show first 200 chars of text if no structured items
+    if (!items.length) {
+      const snippet = (rawText || '').slice(0, 200).replace(/\s+/g, ' ');
+      return [{ title: 'Cricbuzz Live (APIhub)', line1: snippet || 'Live data received', line2: '', status: '—' }];
+    }
+
+    return items;
+  } catch (error) {
+    console.warn('APIhub live fetch failed:', error);
+    return null;
+  }
+}
+
+// Existing RapidAPI fetch remains
+// async function fetchCricbuzzLive() { ...existing code... }
+
+// Prefer APIhub -> RapidAPI -> fallback
+async function updateLiveScores() {
+  const container = document.getElementById('liveScores');
+  if (!container) return;
+
+  // Try APIhub first
+  const hubItems = await fetchApihubLive?.();
+  if (hubItems && hubItems.length) {
+    container.innerHTML = hubItems.slice(0, 8).map(it => `
+      <div class="live-item">
+        <div><strong>${it.title}</strong></div>
+        <div>${it.line1}</div>
+        <div>${it.line2 || ''}</div>
+        <span class="timestamp">${it.status || ''}</span>
+      </div>
+    `).join('');
+    return;
+  }
+
+  // Then RapidAPI
+  const liveItems = await fetchCricbuzzLive?.();
+  if (liveItems && liveItems.length) {
+    container.innerHTML = liveItems.slice(0, 8).map(it => `
+      <div class="live-item">
+        <div><strong>${it.title}</strong></div>
+        <div>${it.line1}</div>
+        <div>${it.line2}</div>
+        <span class="timestamp">${it.status}</span>
+      </div>
+    `).join('');
+    return;
+  }
+
+  // Fallback (no mention of “API key above”)
+  container.innerHTML = `
+    <div class="live-item">
+      <div>Live scores are currently unavailable.</div>
+      <span class="timestamp">Please try again later</span>
+    </div>
+  `;
+}
+
+// Simplify realtime updates: only live scores (keep interval)
+function initializeRealTimeUpdates() {
+  updateLiveScores();
+  setInterval(() => {
+    updateLiveScores();
+  }, 30000);
 }
 
 function loadPlayerTable(data) {
@@ -285,10 +461,7 @@ function loadRunsChart() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 2000,
-          easing: 'easeOutBounce'
-        },
+        animation: chartAnimDuration ? { duration: chartAnimDuration, easing: 'easeOutQuart' } : false,
         plugins: {
           title: {
             display: true,
@@ -415,12 +588,7 @@ function loadWinRateChart() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          animateRotate: true,
-          animateScale: true,
-          duration: 2000,
-          easing: 'easeOutElastic'
-        },
+        animation: chartAnimDuration ? { animateRotate: true, animateScale: true, duration: chartAnimDuration, easing: 'easeOutQuart' } : false,
         plugins: {
           legend: {
             position: 'bottom',
@@ -535,10 +703,7 @@ function loadPerformanceChart() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 2000,
-          easing: 'easeOutQuart'
-        },
+        animation: chartAnimDuration ? { duration: chartAnimDuration, easing: 'easeOutQuart' } : false,
         plugins: {
           title: {
             display: true,
@@ -923,6 +1088,7 @@ function hideAddTeamForm() {
 
 function saveNewTeam() {
   try {
+    setBusy(true);
     const form = document.getElementById('teamForm');
     if (!form) {
       console.error('Team form not found');
@@ -960,6 +1126,7 @@ function saveNewTeam() {
     }
     
     teamsData.push(newTeam);
+    persistData(); // NEW
     hideAddTeamForm();
     
     // Refresh all components
@@ -968,11 +1135,13 @@ function saveNewTeam() {
     populateTeamOptions();
     updateTeamSelect();
     
-    alert(`Team "${newTeam.name}" added successfully!`);
+    showToast(`Team "${newTeam.name}" added`, 'success');
     console.log('New team saved:', newTeam);
   } catch (error) {
     console.error('Error saving new team:', error);
     alert('Error saving team. Please try again.');
+  } finally {
+    setBusy(false);
   }
 }
 
@@ -1023,320 +1192,11 @@ function addSampleData() {
   updateTeamSelect();
 }
 
-// Weather and Location Services
-function initializeLocationServices() {
-  if ('geolocation' in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        currentLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          city: 'Current Location'
-        };
-        updateWeatherData();
-      },
-      (error) => {
-        console.warn('Geolocation error:', error);
-        // Use default location
-        updateWeatherData();
-      }
-    );
-  }
-}
-
-function initializeWeatherServices() {
-  updateWeatherData();
-  
-  // Update weather every 10 minutes
-  weatherUpdateInterval = setInterval(updateWeatherData, 600000);
-}
-
-async function updateWeatherData() {
-  try {
-    const widget = document.getElementById('weatherWidget');
-    widget.classList.add('updating');
-    
-    // For demo purposes, using mock weather data
-    // Replace with actual API call: const response = await fetch(`${WEATHER_API_URL}/weather?lat=${currentLocation.lat}&lon=${currentLocation.lng}&appid=${WEATHER_API_KEY}&units=metric`);
-    
-    const mockWeatherData = {
-      main: {
-        temp: Math.round(Math.random() * 30 + 5),
-        humidity: Math.round(Math.random() * 50 + 30),
-        pressure: Math.round(Math.random() * 50 + 1000)
-      },
-      weather: [
-        {
-          main: ['Clear', 'Clouds', 'Rain', 'Snow'][Math.floor(Math.random() * 4)],
-          description: 'scattered clouds',
-          icon: '02d'
-        }
-      ],
-      wind: {
-        speed: Math.round(Math.random() * 20 + 5),
-        deg: Math.round(Math.random() * 360)
-      },
-      visibility: Math.round(Math.random() * 5000 + 5000),
-      name: currentLocation.city
-    };
-    
-    weatherData = mockWeatherData;
-    updateWeatherDisplay();
-    updateWeatherAnalytics();
-    generateMatchRecommendations();
-    
-    widget.classList.remove('updating');
-  } catch (error) {
-    console.error('Error updating weather data:', error);
-    displayWeatherError();
-  }
-}
-
-function updateWeatherDisplay() {
-  const widget = document.getElementById('weatherWidget');
-  const condition = document.getElementById('weatherCondition');
-  const details = document.getElementById('weatherDetails');
-  
-  widget.innerHTML = `
-    <div class="weather-content">
-      <div class="weather-temp">${weatherData.main.temp}°C</div>
-      <div class="weather-desc">${weatherData.weather[0].description}</div>
-      <div class="weather-details-grid">
-        <div class="weather-detail">
-          <i class="fas fa-tint"></i>
-          <span>${weatherData.main.humidity}%</span>
-        </div>
-        <div class="weather-detail">
-          <i class="fas fa-wind"></i>
-          <span>${weatherData.wind.speed} m/s</span>
-        </div>
-        <div class="weather-detail">
-          <i class="fas fa-thermometer-half"></i>
-          <span>${weatherData.main.pressure} hPa</span>
-        </div>
-        <div class="weather-detail">
-          <i class="fas fa-eye"></i>
-          <span>${(weatherData.visibility/1000).toFixed(1)} km</span>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  if (condition) {
-    condition.textContent = weatherData.weather[0].main;
-  }
-  
-  if (details) {
-    details.innerHTML = `
-      <i class="fas fa-thermometer-half"></i>
-      <span>${weatherData.main.temp}°C</span>
-      <i class="fas fa-wind"></i>
-      <span>${weatherData.wind.speed} m/s</span>
-    `;
-  }
-}
-
-function getCurrentLocation() {
-  if ('geolocation' in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        currentLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          city: 'Current Location'
-        };
-        updateWeatherData();
-        if (map) {
-          map.setView([currentLocation.lat, currentLocation.lng], 10);
-        }
-      },
-      (error) => {
-        alert('Unable to get your location. Please try again.');
-      }
-    );
-  }
-}
-
-async function searchLocation() {
-  const input = document.getElementById('locationInput');
-  const query = input.value.trim();
-  
-  if (!query) return;
-  
-  try {
-    // Mock geocoding - replace with actual service
-    const mockCoords = {
-      'london': { lat: 51.5074, lng: -0.1278 },
-      'paris': { lat: 48.8566, lng: 2.3522 },
-      'tokyo': { lat: 35.6762, lng: 139.6503 },
-      'sydney': { lat: -33.8688, lng: 151.2093 }
-    };
-    
-    const cityKey = query.toLowerCase();
-    if (mockCoords[cityKey]) {
-      currentLocation = {
-        ...mockCoords[cityKey],
-        city: query
-      };
-      updateWeatherData();
-      if (map) {
-        map.setView([currentLocation.lat, currentLocation.lng], 10);
-      }
-    } else {
-      alert('Location not found. Try: London, Paris, Tokyo, or Sydney');
-    }
-  } catch (error) {
-    console.error('Error searching location:', error);
-    alert('Error searching location. Please try again.');
-  }
-}
-
-// Map Integration
-function initializeMap() {
-  try {
-    const mapContainer = document.getElementById('mapContainer');
-    if (!mapContainer) return;
-    
-    map = L.map('mapContainer').setView([currentLocation.lat, currentLocation.lng], 5);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-    
-    // Add team markers
-    teamsData.forEach(team => {
-      if (team.location) {
-        const marker = L.marker([team.location.lat, team.location.lng])
-          .addTo(map)
-          .bindPopup(`
-            <div class="map-popup">
-              <h4>${team.name}</h4>
-              <p><strong>Captain:</strong> ${team.captain}</p>
-              <p><strong>Matches:</strong> ${team.matches}</p>
-              <p><strong>Win Rate:</strong> ${(team.wins/team.matches*100).toFixed(1)}%</p>
-              <p><strong>Home Ground:</strong> ${team.homeGround}</p>
-            </div>
-          `);
-      }
-    });
-    
-    console.log('Map initialized successfully');
-  } catch (error) {
-    console.error('Error initializing map:', error);
-  }
-}
-
-// Weather Analytics
-function updateWeatherAnalytics() {
-  // Update weather impact indicators
-  const impact = getWeatherImpact();
-  const impactElement = document.getElementById('teamsWeatherImpact');
-  
-  if (impactElement) {
-    impactElement.innerHTML = `
-      <div class="weather-impact-indicator ${impact.class}">
-        <i class="${impact.icon}"></i>
-        <span>${impact.message}</span>
-      </div>
-    `;
-  }
-  
-  // Load weather performance chart
-  loadWeatherPerformanceChart();
-}
-
-function getWeatherImpact() {
-  const temp = weatherData.main.temp;
-  const windSpeed = weatherData.wind.speed;
-  const condition = weatherData.weather[0].main;
-  
-  if (condition === 'Rain' || condition === 'Snow' || windSpeed > 15) {
-    return {
-      class: 'weather-poor',
-      icon: 'fas fa-exclamation-triangle',
-      message: 'Poor conditions for outdoor sports'
-    };
-  } else if (temp < 5 || temp > 35 || windSpeed > 10) {
-    return {
-      class: 'weather-fair',
-      icon: 'fas fa-info-circle',
-      message: 'Fair conditions with some challenges'
-    };
-  } else {
-    return {
-      class: 'weather-good',
-      icon: 'fas fa-check-circle',
-      message: 'Excellent conditions for sports'
-    };
-  }
-}
-
-function loadWeatherPerformanceChart() {
-  try {
-    const canvas = document.getElementById('weatherPerformanceChart');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    
-    if (charts.weatherChart) {
-      charts.weatherChart.destroy();
-    }
-    
-    // Mock weather performance data
-    const weatherConditions = ['Sunny', 'Cloudy', 'Rainy', 'Windy'];
-    const performanceData = [85, 75, 45, 65]; // Performance scores
-    
-    charts.weatherChart = new Chart(ctx, {
-      type: 'radar',
-      data: {
-        labels: weatherConditions,
-        datasets: [{
-          label: 'Team Performance by Weather',
-          data: performanceData,
-          backgroundColor: 'rgba(102, 126, 234, 0.3)',
-          borderColor: 'rgba(102, 126, 234, 1)',
-          borderWidth: 3,
-          pointBackgroundColor: 'rgba(102, 126, 234, 1)',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          title: {
-            display: true,
-            text: '🌤️ Weather Impact on Performance',
-            font: { family: 'Orbitron', size: 16, weight: 'bold' },
-            color: '#667eea'
-          }
-        },
-        scales: {
-          r: {
-            beginAtZero: true,
-            max: 100,
-            grid: { color: 'rgba(102, 126, 234, 0.2)' },
-            ticks: { color: '#667eea', font: { size: 10 } }
-          }
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error loading weather chart:', error);
-  }
-}
-
-// Real-time Updates
+// Simplify realtime updates: only live scores (no weather alerts/recommendations)
 function initializeRealTimeUpdates() {
   updateLiveScores();
-  updateWeatherAlerts();
-  
-  // Update every 30 seconds
   setInterval(() => {
     updateLiveScores();
-    updateWeatherAlerts();
   }, 30000);
 }
 
@@ -1358,125 +1218,16 @@ function updateLiveScores() {
   `).join('');
 }
 
-function updateWeatherAlerts() {
-  const container = document.getElementById('weatherAlerts');
-  if (!container) return;
-  
-  const alerts = [];
-  
-  if (weatherData.wind && weatherData.wind.speed > 15) {
-    alerts.push({
-      message: 'High wind speeds detected - consider indoor venues',
-      type: 'warning',
-      time: moment().format('HH:mm')
-    });
-  }
-  
-  if (weatherData.weather && weatherData.weather[0].main === 'Rain') {
-    alerts.push({
-      message: 'Rain expected - matches may be delayed',
-      type: 'danger',
-      time: moment().format('HH:mm')
-    });
-  }
-  
-  if (alerts.length === 0) {
-    alerts.push({
-      message: 'No weather alerts - perfect conditions for sports!',
-      type: 'success',
-      time: moment().format('HH:mm')
-    });
-  }
-  
-  container.innerHTML = alerts.map(alert => `
-    <div class="live-item weather-${alert.type}">
-      <div>${alert.message}</div>
-      <span class="timestamp">${alert.time}</span>
-    </div>
-  `).join('');
-}
-
-function generateMatchRecommendations() {
-  const container = document.getElementById('matchRecommendations');
-  if (!container) return;
-  
-  const impact = getWeatherImpact();
-  const recommendations = [];
-  
-  if (impact.class === 'weather-good') {
-    recommendations.push({
-      message: 'Perfect day for outdoor cricket matches',
-      venue: 'All outdoor venues available',
-      time: moment().format('HH:mm')
-    });
-  } else if (impact.class === 'weather-fair') {
-    recommendations.push({
-      message: 'Consider covered venues or shorter formats',
-      venue: 'Semi-covered stadiums recommended',
-      time: moment().format('HH:mm')
-    });
-  } else {
-    recommendations.push({
-      message: 'Indoor venues strongly recommended',
-      venue: 'Move to indoor facilities',
-      time: moment().format('HH:mm')
-    });
-  }
-  
-  container.innerHTML = recommendations.map(rec => `
-    <div class="live-item">
-      <div>${rec.message}</div>
-      <div><small>${rec.venue}</small></div>
-      <span class="timestamp">${rec.time}</span>
-    </div>
-  `).join('');
-}
-
-// File Import/Export Functions
-function handleFileImport(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const importedData = JSON.parse(e.target.result);
-      
-      if (importedData.teams) {
-        teamsData = [...teamsData, ...importedData.teams];
-      }
-      if (importedData.players) {
-        playersData = [...playersData, ...importedData.players];
-      }
-      
-      // Refresh all components
-      loadAllCharts();
-      loadTeamStats();
-      populateTeamOptions();
-      updateTeamSelect();
-      if (map) initializeMap();
-      
-      alert('Data imported successfully!');
-    } catch (error) {
-      alert('Error importing file. Please check the format.');
-    }
-  };
-  reader.readAsText(file);
-}
-
 function generatePDFReport() {
   try {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
-    
-    // Add title
     pdf.setFontSize(20);
     pdf.text('SportStats Analytics Report', 20, 30);
     
-    // Add weather info
+    // simplified: remove weather line
     pdf.setFontSize(12);
     pdf.text(`Generated on: ${moment().format('YYYY-MM-DD HH:mm')}`, 20, 50);
-    pdf.text(`Weather: ${weatherData.weather[0].main} - ${weatherData.main.temp}°C`, 20, 60);
     
     // Add team stats
     let yPos = 80;
@@ -1497,20 +1248,98 @@ function generatePDFReport() {
   }
 }
 
-// Enhanced error handling
-function displayWeatherError() {
-  const widget = document.getElementById('weatherWidget');
-  widget.innerHTML = `
-    <div class="weather-error">
-      <i class="fas fa-exclamation-triangle"></i>
-      <span>Weather data unavailable</span>
-    </div>
-  `;
+// NEW: handle JSON import from hidden file input
+function handleFileImport(event) {
+  setBusy(true);
+  try {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+      setBusy(false);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result || '{}');
+
+        // Merge teams
+        if (Array.isArray(imported.teams)) {
+          imported.teams.forEach(t => {
+            if (!t || !t.name) return;
+            // replace if exists by name (case-insensitive), else push
+            const idx = teamsData.findIndex(x => x.name?.toLowerCase() === String(t.name).toLowerCase());
+            if (idx >= 0) teamsData[idx] = { ...teamsData[idx], ...t };
+            else teamsData.push(t);
+          });
+        }
+
+        // Merge players
+        if (Array.isArray(imported.players)) {
+          imported.players.forEach(p => {
+            if (!p || !p.name) return;
+            const idx = playersData.findIndex(x => x.name?.toLowerCase() === String(p.name).toLowerCase());
+            if (idx >= 0) playersData[idx] = { ...playersData[idx], ...p };
+            else playersData.push(p);
+          });
+        }
+
+        persistData();
+        // Refresh UI
+        loadAllCharts();
+        loadTeamStats();
+        populateTeamOptions();
+        updateTeamSelect();
+        loadPlayerTable(playersData);
+        showToast('Data imported successfully', 'success');
+      } catch (err) {
+        console.error('Import parse error:', err);
+        showToast('Invalid file format', 'error');
+      } finally {
+        // reset input so the same file can be chosen again later
+        event.target.value = '';
+        setBusy(false);
+      }
+    };
+    reader.readAsText(file);
+  } catch (err) {
+    console.error('Import error:', err);
+    showToast('Import failed', 'error');
+    setBusy(false);
+  }
+}
+
+// Live Clock (aligned to second)
+function startLiveClock() {
+  const el = document.getElementById('liveClock');
+  if (!el) return;
+
+  const render = () => {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const date = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' });
+    el.innerHTML = `<div class="clk-time">${time}</div><div class="clk-date">${date}</div>`;
+    // removed: tick class toggle to prevent blinking
+    // el.classList.remove('tick');
+    // void el.offsetWidth;
+    // el.classList.add('tick');
+  };
+
+  if (clockInterval) clearInterval(clockInterval);
+  render();
+  const toNextSecond = 1000 - (Date.now() % 1000);
+  setTimeout(() => {
+    render();
+    clockInterval = setInterval(render, 1000);
+  }, toNextSecond);
 }
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
   if (weatherUpdateInterval) {
     clearInterval(weatherUpdateInterval);
+  }
+  // Clear clock timer
+  if (clockInterval) {
+    clearInterval(clockInterval);
   }
 });
