@@ -142,11 +142,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTeamStats();
     populateTeamOptions();
     updateTeamSelect();
-    // Initialize weather and location services (GPS first)
-    // initializeLocationServices();
-    // initializeWeatherServices();
-    // keep map if present
-    // initializeMap(); // leave as-is if you still render the map
+    // Initialize map
+    initializeMap();
     initializeRealTimeUpdates();
     // Start live clock
     startLiveClock();
@@ -1331,6 +1328,55 @@ function startLiveClock() {
     render();
     clockInterval = setInterval(render, 1000);
   }, toNextSecond);
+}
+
+// Initialize Leaflet map with team locations
+function initializeMap() {
+  try {
+    const mapContainer = document.getElementById('mapContainer');
+    if (!mapContainer) {
+      console.warn('Map container not found');
+      return;
+    }
+
+    // Clear any existing map
+    if (map) {
+      map.remove();
+    }
+
+    // Create map centered on US
+    map = L.map('mapContainer').setView([39.8283, -98.5795], 4);
+
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(map);
+
+    // Add team markers
+    teamsData.forEach(team => {
+      if (team.location && team.location.lat && team.location.lng) {
+        const marker = L.marker([team.location.lat, team.location.lng]).addTo(map);
+        
+        const popupContent = `
+          <div class="map-popup">
+            <h4>${team.name}</h4>
+            <p><strong>Captain:</strong> ${team.captain}</p>
+            <p><strong>Home Ground:</strong> ${team.homeGround || 'Not specified'}</p>
+            <p><strong>Matches:</strong> ${team.matches}</p>
+            <p><strong>Win Rate:</strong> ${team.matches > 0 ? ((team.wins / team.matches) * 100).toFixed(1) : 0}%</p>
+            <p><strong>Total Runs:</strong> ${team.totalRuns.toLocaleString()}</p>
+          </div>
+        `;
+        
+        marker.bindPopup(popupContent);
+      }
+    });
+
+    console.log('Map initialized with team locations');
+  } catch (error) {
+    console.error('Error initializing map:', error);
+  }
 }
 
 // Cleanup on page unload
