@@ -96,6 +96,52 @@
     </div>
   </section>
 
+  <!-- Player Management Section -->
+  <section class="form-section">
+    <h2>🏃‍♂️ Player Management</h2>
+    <div class="btn-group">
+      <button id="addPlayerBtn" class="btn">
+        <i class="fas fa-user-plus"></i> Add New Player
+      </button>
+    </div>
+
+    <div id="addPlayerForm" style="display: none; margin-top: 20px;">
+      <h3>Add New Player</h3>
+      <form id="playerForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="playerName">Player Name:</label>
+            <input type="text" id="playerName" name="playerName" required>
+          </div>
+          <div class="form-group">
+            <label for="playerTeam">Team:</label>
+            <select id="playerTeam" name="playerTeam" required>
+              <option value="">Select Team</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="playerMatches">Matches Played:</label>
+            <input type="number" id="playerMatches" name="playerMatches" min="0" required>
+          </div>
+          <div class="form-group">
+            <label for="playerRuns">Total Runs/Goals:</label>
+            <input type="number" id="playerRuns" name="playerRuns" min="0" required>
+          </div>
+          <div class="form-group">
+            <label for="playerPosition">Position:</label>
+            <input type="text" id="playerPosition" name="playerPosition" placeholder="e.g., Batsman, Bowler">
+          </div>
+          <div class="form-group">
+            <label for="playerAge">Age:</label>
+            <input type="number" id="playerAge" name="playerAge" min="16" max="50">
+          </div>
+        </div>
+        <button type="button" id="savePlayerBtn" class="btn">Save Player</button>
+        <button type="button" id="cancelPlayerBtn" class="btn btn-secondary">Cancel</button>
+      </form>
+    </div>
+  </section>
+
   <!-- Filter Section -->
   <section class="filter">
     <label for="teamSelect">Select Team:</label>

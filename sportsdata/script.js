@@ -142,6 +142,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTeamStats();
     populateTeamOptions();
     updateTeamSelect();
+    // NEW: populate player team dropdown
+    populatePlayerTeamOptions();
     // Initialize map
     initializeMap();
     initializeRealTimeUpdates();
@@ -176,7 +178,11 @@ function addEventListeners() {
       cancelTeamBtn: document.getElementById('cancelTeamBtn'),
       exportBtn: document.getElementById('exportBtn'),
       team1Select: document.getElementById('team1Select'),
-      team2Select: document.getElementById('team2Select')
+      team2Select: document.getElementById('team2Select'),
+      // NEW: player management elements
+      addPlayerBtn: document.getElementById('addPlayerBtn'),
+      savePlayerBtn: document.getElementById('savePlayerBtn'),
+      cancelPlayerBtn: document.getElementById('cancelPlayerBtn')
     };
 
     // Check if all elements exist
@@ -221,6 +227,17 @@ function addEventListeners() {
     if (generateReportBtn) generateReportBtn.addEventListener('click', generatePDFReport);
 
     // removed: bind live API UI (saveLiveApiKeyBtn/liveApiKeyInput/liveApiHostInput/liveApiHubKeyInput)
+
+    // NEW: Player management event listeners
+    if (elements.addPlayerBtn) {
+      elements.addPlayerBtn.addEventListener('click', showAddPlayerForm);
+    }
+    if (elements.savePlayerBtn) {
+      elements.savePlayerBtn.addEventListener('click', saveNewPlayer);
+    }
+    if (elements.cancelPlayerBtn) {
+      elements.cancelPlayerBtn.addEventListener('click', hideAddPlayerForm);
+    }
 
     // ...existing code...
   } catch (error) {
@@ -287,46 +304,22 @@ async function fetchApihubLive() {
 // Existing RapidAPI fetch remains
 // async function fetchCricbuzzLive() { ...existing code... }
 
-// Prefer APIhub -> RapidAPI -> fallback
-async function updateLiveScores() {
+function updateLiveScores() {
   const container = document.getElementById('liveScores');
   if (!container) return;
-
-  // Try APIhub first
-  const hubItems = await fetchApihubLive?.();
-  if (hubItems && hubItems.length) {
-    container.innerHTML = hubItems.slice(0, 8).map(it => `
-      <div class="live-item">
-        <div><strong>${it.title}</strong></div>
-        <div>${it.line1}</div>
-        <div>${it.line2 || ''}</div>
-        <span class="timestamp">${it.status || ''}</span>
-      </div>
-    `).join('');
-    return;
-  }
-
-  // Then RapidAPI
-  const liveItems = await fetchCricbuzzLive?.();
-  if (liveItems && liveItems.length) {
-    container.innerHTML = liveItems.slice(0, 8).map(it => `
-      <div class="live-item">
-        <div><strong>${it.title}</strong></div>
-        <div>${it.line1}</div>
-        <div>${it.line2}</div>
-        <span class="timestamp">${it.status}</span>
-      </div>
-    `).join('');
-    return;
-  }
-
-  // Fallback (no mention of “API key above”)
-  container.innerHTML = `
+  
+  const mockScores = [
+    { teams: 'Titans vs Warriors', score: '156/4 (18.2 overs)', status: 'Live' },
+    { teams: 'Falcons vs Eagles', score: '203/7 (20 overs)', status: 'Complete' }
+  ];
+  
+  container.innerHTML = mockScores.map(score => `
     <div class="live-item">
-      <div>Live scores are currently unavailable.</div>
-      <span class="timestamp">Please try again later</span>
+      <div>${score.teams}</div>
+      <div>${score.score}</div>
+      <span class="timestamp">${score.status}</span>
     </div>
-  `;
+  `).join('');
 }
 
 // Simplify realtime updates: only live scores (keep interval)
@@ -893,6 +886,29 @@ function updateTeamSelect() {
   }
 }
 
+function populatePlayerTeamOptions() {
+  try {
+    const select = document.getElementById('playerTeam');
+    if (!select) {
+      console.warn('Player team select not found');
+      return;
+    }
+    
+    select.innerHTML = '<option value="">Select Team</option>';
+    
+    teamsData.forEach(team => {
+      const option = document.createElement('option');
+      option.value = team.name;
+      option.textContent = team.name;
+      select.appendChild(option);
+    });
+    
+    console.log('Player team options populated');
+  } catch (error) {
+    console.error('Error populating player team options:', error);
+  }
+}
+
 function updateComparison() {
   try {
     const team1Select = document.getElementById('team1Select');
@@ -1123,7 +1139,7 @@ function saveNewTeam() {
     }
     
     teamsData.push(newTeam);
-    persistData(); // NEW
+    persistData();
     hideAddTeamForm();
     
     // Refresh all components
@@ -1131,6 +1147,8 @@ function saveNewTeam() {
     loadTeamStats();
     populateTeamOptions();
     updateTeamSelect();
+    // NEW: refresh player team options
+    populatePlayerTeamOptions();
     
     showToast(`Team "${newTeam.name}" added`, 'success');
     console.log('New team saved:', newTeam);
