@@ -1,196 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ayush Kumar - Portfolio</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduBot - AI Educational Assistant</title>
+  <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <span class="logo-text">AK</span>
-            </div>
-            <ul class="nav-menu">
-                <li><a href="#home" class="nav-link">Home</a></li>
-                <li><a href="#about" class="nav-link">About</a></li>
-                <li><a href="#projects" class="nav-link">Projects</a></li>
-                <li><a href="#contact" class="nav-link">Contact</a></li>
-            </ul>
-            <div class="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <section id="home" class="hero">
-        <div class="hero-container">
-            <div class="hero-content">
-                <h1 class="hero-title">
-                    <span class="typewriter">Hi, I'm Ayush Kumar</span>
-                </h1>
-                <p class="hero-subtitle">B.Tech CSE Student at JBIT Dehradun</p>
-                <p class="hero-description">Passionate about creating innovative solutions and exploring the world of technology</p>
-                <div class="hero-buttons">
-                    <a href="#projects" class="btn btn-primary">View Projects</a>
-                    <a href="#contact" class="btn btn-secondary">Get In Touch</a>
-                </div>
+  <!-- FLOATING PARTICLES BACKGROUND -->
+  <div class="particles">
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <div class="main-container">
+    
+    <!-- HEADER -->
+    <header class="header">
+      <div class="logo-container">
+        <div class="logo-icon">🤖</div>
+        <h1 class="logo-text">EduBot</h1>
+      </div>
+      <nav class="nav-links">
+        <a href="#about" class="nav-link">About</a>
+        <a href="#features" class="nav-link">Features</a>
+      </nav>
+    </header>
+
+    <!-- CHAT CONTAINER -->
+    <main class="chat-container">
+      
+      <!-- CHAT WINDOW -->
+      <div class="chat-window">
+        
+        <!-- CHAT HEADER -->
+        <div class="chat-window-header">
+          <div class="header-left">
+            <div class="bot-avatar">
+              <span class="bot-emoji">🎓</span>
+              <span class="status-dot"></span>
             </div>
-            <div class="hero-animation">
-                <div class="floating-shapes">
-                    <div class="shape shape-1"></div>
-                    <div class="shape shape-2"></div>
-                    <div class="shape shape-3"></div>
-                </div>
+            <div class="header-info">
+              <h2 class="bot-name">EduBot AI</h2>
+              <p class="bot-status" id="statusText">Ready to help you learn</p>
             </div>
+          </div>
+          <div class="header-actions">
+            <button class="icon-btn" id="clearChatBtn" title="Clear chat">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+            <button class="icon-btn" id="exportChatBtn" title="Download chat">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </button>
+          </div>
         </div>
-        <div class="scroll-indicator">
-            <div class="scroll-arrow"></div>
+
+        <!-- MESSAGES AREA -->
+        <div class="messages-area" id="chatBox">
+          <!-- Welcome message -->
+          <div class="welcome-screen">
+            <div class="welcome-icon">✨</div>
+            <h3>Welcome to EduBot!</h3>
+            <p>Your AI-powered learning assistant. Ask me anything about:</p>
+            <div class="welcome-tags">
+              <span class="tag">📐 Math</span>
+              <span class="tag">🔬 Science</span>
+              <span class="tag">💻 Programming</span>
+              <span class="tag">📚 History</span>
+              <span class="tag">✍️ Writing</span>
+            </div>
+          </div>
         </div>
+
+        <!-- INPUT AREA -->
+        <div class="input-area">
+          <div class="input-row">
+            <select id="modelSelect" class="model-select">
+              <optgroup label="🆓 Free Models">
+                <option value="wikipedia">📚 Wikipedia</option>
+                <option value="cohere">🔷 Cohere</option>
+                <option value="huggingface">🤗 HuggingFace</option>
+              </optgroup>
+              <optgroup label="💰 Premium">
+                <option value="chatgpt">⭐ ChatGPT</option>
+                <option value="claude">🎯 Claude</option>
+              </optgroup>
+            </select>
+            <span class="connection-indicator" id="connectionStatus">
+              <span class="dot"></span>
+              <span class="text">Demo Mode</span>
+            </span>
+          </div>
+          
+          <div class="message-input-container">
+            <textarea 
+              id="searchInput" 
+              class="message-input" 
+              placeholder="Ask me anything..."
+              rows="1"
+            ></textarea>
+            <button id="askBtn" class="send-btn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- QUICK PROMPTS -->
+          <div class="quick-prompts" id="promptChips">
+            <!-- Will be populated by JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SIDEBAR INFO -->
+      <aside class="info-sidebar">
+        <div class="info-card shimmer">
+          <div class="card-icon">💡</div>
+          <h3>Quick Tips</h3>
+          <ul>
+            <li>Be specific in your questions</li>
+            <li>Ask follow-up questions</li>
+            <li>Mention your grade level for tailored answers</li>
+            <li>Use "explain like I'm 12" for simpler explanations</li>
+          </ul>
+        </div>
+
+        <div class="info-card shimmer">
+          <div class="card-icon">🎯</div>
+          <h3>Features</h3>
+          <ul>
+            <li>Multiple AI models</li>
+            <li>Step-by-step explanations</li>
+            <li>Code examples & formulas</li>
+            <li>Chat history saved</li>
+          </ul>
+        </div>
+
+        <div class="info-card shimmer">
+          <div class="card-icon">🔒</div>
+          <h3>Privacy</h3>
+          <p>Your conversations are stored locally in your browser. We don't track or store your data on servers.</p>
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- FEATURES SECTION -->
+    <section id="features" class="features-section">
+      <h2 class="section-title">Why Choose EduBot?</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📘</div>
+          <h3>Multi-Subject Support</h3>
+          <p>Get help with Math, Science, Programming, History, and more</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Instant Answers</h3>
+          <p>Powered by multiple AI models for fast, accurate responses</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>Smart Learning</h3>
+          <p>Step-by-step explanations that help you understand, not just memorize</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Fully Responsive</h3>
+          <p>Works seamlessly on desktop, tablet, and mobile devices</p>
+        </div>
+      </div>
     </section>
 
-    <!-- About Section -->
-    <section id="about" class="about">
-        <div class="container">
-            <h2 class="section-title">About Me</h2>
-            <div class="about-content">
-                <div class="about-text">
-                    <p>I'm a passionate B.Tech Computer Science Engineering student at JBIT Dehradun, driven by curiosity and innovation. I love solving complex problems and creating meaningful digital experiences.</p>
-                    <div class="skills">
-                        <h3>Skills</h3>
-                        <div class="skill-tags">
-                            <span class="skill-tag">JavaScript</span>
-                            <span class="skill-tag">Python</span>
-                            <span class="skill-tag">Java</span>
-                            <span class="skill-tag">React</span>
-                            <span class="skill-tag">Node.js</span>
-                            <span class="skill-tag">HTML/CSS</span>
-                            <span class="skill-tag">Git</span>
-                            <span class="skill-tag">SQL</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="about-stats">
-                    <div class="stat-card">
-                        <h3>2+</h3>
-                        <p>Years Learning</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>10+</h3>
-                        <p>Projects Built</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>100+</h3>
-                        <p>Hours Coding</p>
-                    </div>
-                </div>
-            </div>
+    <!-- ABOUT SECTION -->
+    <section id="about" class="about-section">
+      <div class="about-content">
+        <h2 class="section-title">About EduBot</h2>
+        <p>EduBot is your personal AI-powered learning assistant, designed to make education accessible and engaging. Choose from multiple AI models and get instant, detailed explanations for any topic. Perfect for students, educators, and curious minds!</p>
+        <div class="about-stats">
+          <div class="stat">
+            <div class="stat-number">50+</div>
+            <div class="stat-label">Topics Covered</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">5</div>
+            <div class="stat-label">AI Models</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">100%</div>
+            <div class="stat-label">Free to Use</div>
+          </div>
         </div>
+      </div>
     </section>
 
-    <!-- Projects Section -->
-    <section id="projects" class="projects">
-        <div class="container">
-            <h2 class="section-title">My Projects</h2>
-            <div class="projects-grid">
-                <div class="project-card">
-                    <div class="project-image">
-                        <div class="project-overlay">
-                            <div class="project-links">
-                                <a href="./sportsdata"target="_blank" class="project-link">
-                                    <i class="fas fa-external-link-alt"></i>
-                                </a>
-                                <a href="#" class="project-link">
-                                    <i class="fab fa-github"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="project-content">
-                        <h3>SportsData</h3>
-                        <p>A comprehensive sports data management system with real-time statistics and analytics.</p>
-                        <div class="project-tech">
-                            <span class="tech-tag">JavaScript</span>
-                            <span class="tech-tag">API</span>
-                            <span class="tech-tag">CSS</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="project-card">
-                    <div class="project-image">
-                        <div class="project-overlay">
-                            <div class="project-links">
-                                <a href="#" class="project-link">
-                                    <i class="fas fa-external-link-alt"></i>
-                                </a>
-                                <a href="#" class="project-link">
-                                    <i class="fab fa-github"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="project-content">
-                        <h3>Coming Soon</h3>
-                        <p>Exciting new projects are in development. Stay tuned for more innovative solutions!</p>
-                        <div class="project-tech">
-                            <span class="tech-tag">React</span>
-                            <span class="tech-tag">Node.js</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section id="contact" class="contact">
-        <div class="container">
-            <h2 class="section-title">Get In Touch</h2>
-            <div class="contact-content">
-                <div class="contact-info">
-                    <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>ayush.kumar@example.com</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-phone"></i>
-                        <span>+91 XXXXX XXXXX</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Dehradun, Uttarakhand</span>
-                    </div>
-                    <div class="social-links">
-                        <a href="#" class="social-link"><i class="fab fa-github"></i></a>
-                        <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
-                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
-                    </div>
-                </div>
-                <form class="contact-form">
-                    <input type="text" placeholder="Your Name" required>
-                    <input type="email" placeholder="Your Email" required>
-                    <textarea placeholder="Your Message" rows="5" required></textarea>
-                    <button type="submit" class="btn btn-primary">Send Message</button>
-                </form>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
+    <!-- FOOTER -->
     <footer class="footer">
-        <div class="container">
-            <p>&copy; 2024 Ayush Kumar. All rights reserved.</p>
-        </div>
+      <p>© 2025 EduBot by Team-Wave — Empowering learners worldwide</p>
+      <p style="margin-top: 8px; font-size: 13px; opacity: 0.7;">Developed by Ayush</p>
     </footer>
 
-    <script src="script.js"></script>
+  </div>
+
+  <script src="./script.js"></script>
+
 </body>
 </html>
